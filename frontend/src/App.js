@@ -14,6 +14,7 @@ import Login from "./pages/Login";
 import UserDashboard from "./pages/Dashboard";
 import Forecast from "./pages/Forecast";
 import Notifications from "./pages/Notifications";
+import Profile from "./pages/Profile";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -39,6 +40,8 @@ function App() {
       {/* <Navbar /> */}
       <ToastContainer />
         <Routes>
+        <Route path="/profile" element={<Profile />} />
+
           <Route
             path="/"
             element={user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />}
