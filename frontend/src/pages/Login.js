@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../firebase';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError('');
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
@@ -30,15 +32,63 @@ const Login = () => {
       console.log("✅ User authenticated & saved in MongoDB:", data);
     } catch (error) {
       console.error("❌ Login failed:", error.message);
+      setError(error.message);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) return alert("Please enter your email to reset password.");
+    try {
+      await sendPasswordResetEmail(auth, email);
+      alert("📧 Password reset email sent!");
+    } catch (err) {
+      alert("Error sending reset email: " + err.message);
     }
   };
 
   return (
-    <form onSubmit={handleLogin}>
-      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" />
-      <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" />
-      <button type="submit">Login</button>
-    </form>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <form onSubmit={handleLogin} className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Login</h2>
+
+        {/* Email input */}
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full px-4 py-2 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
+          required
+        />
+
+        {/* Password input */}
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full px-4 py-2 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
+          required
+        />
+
+        {/* Error message */}
+        {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+
+        {/* Login button */}
+        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+          Login
+        </button>
+
+        {/* Forgot password button */}
+        <button
+          type="button"
+          onClick={handleForgotPassword}
+          className="mt-4 text-sm text-blue-600 hover:underline w-full"
+        >
+          Forgot Password?
+        </button>
+      </form>
+    </div>
   );
 };
 

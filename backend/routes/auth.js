@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const admin = require('../firebaseAdmin');
+const admin = require('../firebase');
 const User = require('../models/User');
 
 router.post('/register', async (req, res) => {
@@ -8,11 +8,16 @@ router.post('/register', async (req, res) => {
 
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
-    const { uid, email, name } = req.body;
+    const { uid, email, name, phone } = req.body;  // Now extracting phone number
 
     let user = await User.findOne({ uid });
     if (!user) {
-      user = new User({ uid, email, name });
+      user = new User({
+        uid,
+        email,
+        name,
+        phone,  // Save the phone number in the user document
+      });
       await user.save();
     }
 
