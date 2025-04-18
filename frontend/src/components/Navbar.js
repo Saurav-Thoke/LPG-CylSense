@@ -24,9 +24,7 @@ function Navbar() {
       </Link>
 
       <div className="space-x-4">
-        <Link to="/profile" className="text-gray-700 hover:text-blue-600">
-          Profile
-        </Link>
+        
         <Link to="/dashboard" className="text-gray-700 hover:text-blue-600">
           Dashboard
         </Link>
@@ -35,6 +33,9 @@ function Navbar() {
         </Link>
         <Link to="/notification" className="text-gray-700 hover:text-blue-600">
           Notification
+        </Link>
+        <Link to="/profile" className="text-gray-700 hover:text-blue-600">
+          Profile
         </Link>
         <button
           onClick={handleLogout}
