@@ -15,9 +15,54 @@ import Forecast from "./pages/Forecast";
 import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
 import AuthPage from "./pages/AuthPage";
-
-// Components
 import Navbar from "./components/Navbar";
+import { messaging } from './firebase';
+import { getToken, onMessage } from "firebase/messaging";
+
+
+const VAPID_KEY = "BGymQrL8E7nBxDmmPIHLBffACvlxcF6idbc_2LUrCP7O9prm4z1ha2YxFvEr7Ky32LcA7-SGi8iFTCWSrv90I68"; // From Firebase Console
+
+async function requestPermission() {
+  const permission = await Notification.requestPermission();
+  if (permission === "granted") {
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+    console.log("FCM Token:", token);
+    await sendTokenToBackend(token).catch(()=>{
+      console.log("Error in sending data");
+      
+    });
+    // Send this token to your backend to save it
+  } else {
+    alert("Notification permission denied.");
+  }
+}
+
+// onMessage(messaging, (payload) => {
+//   console.log("Foreground push received:", payload);
+//   // show custom UI if needed
+// });
+
+onMessage(messaging, (payload) => {
+  console.log("Foreground Message:", payload);
+  alert(`${payload.notification.title}\n${payload.notification.body}`);
+});
+
+
+
+async function sendTokenToBackend(token) {
+  const response = await fetch('http://localhost:5000/save-token', {  // Update your API URL here
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ token }), // Send token as part of the request body
+  });
+  
+  const data = await response.json();
+  console.log('Backend response:', data);
+}
+requestPermission();
+
 
 function App() {
   const [user, setUser] = React.useState(null);

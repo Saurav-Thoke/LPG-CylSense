@@ -8,6 +8,9 @@
 // })
 // app.listen(PORT,()=>{console.log("Connected");});
 
+// server.js or pushService.js
+const admin = require("firebase-admin");
+const serviceAccount = require("./firebase-admin.json");
 
 
 //all backend code
@@ -248,3 +251,58 @@ app.listen(port,(error)=>{
       console.log("Error :"+error)  
     }
 })
+
+
+//Push Notification
+
+// backend/server.js
+
+
+// Initialize Firebase Admin SDK
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+// Notification sender function
+function sendNotification(token, title, body) {
+  const message = {
+    notification: {
+      title,
+      body,
+    },
+    token,
+  };
+
+  admin
+    .messaging()
+    .send(message)
+    .then((response) => {
+      console.log("✅ Successfully sent message:", response);
+    })
+    .catch((error) => {
+      console.error("❌ Error sending message:", error);
+    });
+}
+
+// Route to receive token and trigger a test notification
+app.post("/send-notification", (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ message: "Token is required" });
+  }
+
+  sendNotification(
+    token,
+    "🔔 Test Notification",
+    "This is a test notification from the backend!"
+  );
+
+  res.status(200).json({ message: "Notification sent" });
+});
+
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server is running on port ${PORT}`);
+});
