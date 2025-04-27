@@ -63,11 +63,18 @@ function Profile() {
   };
 
   const handleLogout = async () => {
-    await signOut(auth);
-    toast.success("Logged out successfully!");
-    navigate("/login");
+    const confirmed = window.confirm("Are you sure you want to logout?");
+    if (!confirmed) return;
+  
+    try {
+      await signOut(auth);
+      toast.success("Logged out successfully!");
+      navigate("/");
+    } catch (error) {
+      toast.error("Error during logout");
+    }
   };
-
+  
   const handlePasswordReset = async () => {
     if (user?.email) {
       await sendPasswordResetEmail(auth, user.email);
