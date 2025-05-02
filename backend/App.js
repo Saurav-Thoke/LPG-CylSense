@@ -153,8 +153,8 @@ function sendNotification(token, title, body) {
 
 // Route to receive token and trigger a test notification
 app.post("/send-notification", async (req, res) => {
-  const { token, uid } = req.body;
-
+  const { token } = req.body;
+  
   if (!token || !uid) {
     return res.status(400).json({ message: "Token and UID are required" });
   }

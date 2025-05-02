@@ -5,7 +5,7 @@
 /.pnp
 .pnp.js
 
-backend/firebase-admin.json
+/backend/firebase-admin.json
 
 # testing
 /coverage
