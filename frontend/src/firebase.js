@@ -2,6 +2,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import {getMessaging} from 'firebase/messaging'
 
 const firebaseConfig = {
   apiKey: "AIzaSyDGjeafMtIXgYzEJYXdXWMyTaPc_DUhAuQ",
@@ -13,13 +14,13 @@ const firebaseConfig = {
   measurementId: "G-5PCCDL4TYE",
 };
 
-// ✅ Initialize Firebase
+//  Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// ✅ Initialize Auth
+const messaging=getMessaging(app);
+//  Initialize Auth
 const auth = getAuth(app);
 
-// ✅ Optional: Example login function
+//  Optional: Example login function
 const login = async () => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, 'email@example.com', 'password');
@@ -46,5 +47,5 @@ const login = async () => {
   }
 };
 
-// ✅ Export what you need
-export { auth, login };
+//  Export what you need
+export { auth, login,messaging };

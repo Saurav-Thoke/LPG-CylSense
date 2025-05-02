@@ -5,16 +5,6 @@ const api = axios.create({
   baseURL: 'http://localhost:5000/api', // Update to your backend's URL
 });
 
-// Example for sending GET request
-export const fetchProducts = async () => {
-  try {
-    const response = await api.get('/allproducts');
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    throw error;
-  }
-};
 
 // Example for sending POST request (signup)
 export const registerUser = async (userData) => {

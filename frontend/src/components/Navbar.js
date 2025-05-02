@@ -8,6 +8,9 @@ function Navbar() {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
+    const confirmed = window.confirm("Are you sure you want to logout?");
+    if (!confirmed) return; // If user cancels, do nothing
+
     try {
       await signOut(auth);
       toast.success("Logged out successfully!");
@@ -18,15 +21,20 @@ function Navbar() {
   };
 
   return (
-    <nav className="bg-white shadow-md p-4 flex justify-between items-center">
-      <Link to="/dashboard" className="text-xl font-bold text-blue-600">
-        LPG CylSense
+    <nav className="sticky top-0 z-50 bg-white shadow-md p-4 flex justify-between items-center">
+      {/* Logo + Brand */}
+      <Link to="/dashboard" className="flex items-center space-x-2">
+        <img src="\mainLogo4.jpg" alt="LPG CylSense Logo" className="w-12 h-15" />
+        <span className="text-xl font-bold text-blue-600">LPG CylSense</span>
       </Link>
 
+      {/* Navigation Links */}
       <div className="space-x-4">
-        
         <Link to="/dashboard" className="text-gray-700 hover:text-blue-600">
           Dashboard
+        </Link>
+        <Link to="/profile" className="text-gray-700 hover:text-blue-600">
+          Profile
         </Link>
         <Link to="/forecast" className="text-gray-700 hover:text-blue-600">
           Forecast
@@ -34,9 +42,10 @@ function Navbar() {
         <Link to="/notification" className="text-gray-700 hover:text-blue-600">
           Notification
         </Link>
-        <Link to="/profile" className="text-gray-700 hover:text-blue-600">
-          Profile
+        <Link to="/precautions" className="text-gray-700 hover:text-blue-600">
+          Precautions
         </Link>
+
         <button
           onClick={handleLogout}
           className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
@@ -49,3 +58,4 @@ function Navbar() {
 }
 
 export default Navbar;
+

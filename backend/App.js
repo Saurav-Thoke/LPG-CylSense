@@ -1,17 +1,11 @@
-// const express=require("express");
-// const app=express();
-// require("dotenv").config();
-// require("./model/Db");
 
-// app.get("/login",(req,res)=>{
-//     res.send("Success");   
-// })
-// app.listen(PORT,()=>{console.log("Connected");});
-
+const admin = require("firebase-admin");
+const serviceAccount = require("./firebase-admin.json");
+const Notification = require('./models/Notification'); // 🔁 Add this line
 
 
 //all backend code
-const port =  4000 ;
+const port =5000;
 const express = require("express") ;
 const app = express() ;
 const mongoose = require("mongoose") ;
@@ -36,88 +30,18 @@ app.get("/",(req,res)=>{
  res.send("Express App is running")
 })
 
-//Schema for Creating Products
-const Product = mongoose.model("Product",{
-    id:{
-        type: Number,
-        required:true,
-    },
-    name:{
-        type:String,
-        required:true,
-    },
-    image:{
-      type:String,
-      required:true,
-    },
-    category:{
-        type:String,
-        required:true,
-    },
-    new_price:{
-        type:Number,
-        required:true,
-    },
-    old_price:{
-        type:Number,
-        required:true,
-    },
-    date:{
-        type:Date,
-        default:Date.now,
-    },
-    avilable:{
-        type:Boolean,
-        default:true,
-    },
-})
+app.get('/notifications/:uid', async (req, res) => {
+  const { uid } = req.params;
 
-app.post('/addproduct',async (req,res)=>{
-   let products = await Product.find({}) ;
-   let id ;
-   if(products.length > 0)
-    {
-      let last_product_array = products.slice(-1) ;
-      let last_product = last_product_array[0] ;
-      id = last_product.id+1 ;
-   }
-   else{
-    id = 1 ;
-   }
-    const product = new Product({
-        id:id,
-        name:req.body.name,
-        image:req.body.image,
-        category:req.body.category,
-        new_price:req.body.new_price,
-        old_price:req.body.old_price,
-    });
-    console.log(product) ;
-    await product.save();
-    console.log("Saved");
-    res.json({
-        success:true,
-        name:req.body.name,
-    })
-})
+  try {
+    const notifications = await Notification.find({ uid }).sort({ timestamp: -1 });
+    res.status(200).json(notifications);
+  } catch (err) {
+    console.error("❌ Error fetching notifications:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
-//Creating API for deleting Products
-
-app.post('/removeproduct',async (req,res)=>{
-    await Product.findOneAndDelete({id:req.body.id}) ;
-    console.log("Removed") ;
-    res.json({
-        success:true,
-        name:req.body.name
-    }) 
-})
-
-//Creating API for getting all products
-app.get('/allproducts',async (req,res)=>{
-     let products = await Product.find({}) ;
-     console.log("All Products Fetched") ;
-     res.send(products) ;
-})
 
 //Schema creating for user model
 const Users = mongoose.model('Users',{
@@ -181,20 +105,7 @@ app.post('/login',async (req,res)=>{
         res.json({success:false,errors:"Wrong Email Id"})
     }
 })
-//creating endpoint for newcollection data
-app.get('/newcollections',async (req,res)=>{
-   let  products = await Product.find({}) ;
-   let newcollection = products.slice(1).slice(-8) ;
-   console.log("NewCollection Fetched");
-   res.send(newcollection) ;
-})
-//creating endpoint for popular in women section
-app.get('/popularinwomen',async (req,res) => {
-   let products = await Product.find({category:"women"}) ;
-   let popular_in_women = products.slice(0,4) ;
-   console.log('Popular in women fetched');
-   res.send(popular_in_women) ;
-})
+
 //creating middleware to fetch user
 const fetchUser = async (req,res,next) =>{
  const token = req.header('aut-token') ;
@@ -211,40 +122,67 @@ const fetchUser = async (req,res,next) =>{
    }
  }
 }
-//creating endpoint for adding products in cartdata
-app.post('/addtocart',fetchUser,async (req,res)=>{
-    console.log("Added",req.body.itemId);
-    let userData = await Users.findOne({_id:req.user.id}) ;
-    userData.cartData[req.body.itemId] += 1 ;
-    await Users.findOneAndUpdate({_id:req.user.id},{cartData:userData.cartData});
-    res.send("Added")
-})
-
-//creating endpoint to remove from cartdata
-app.post('/removefromcart',fetchUser,async (req,res) =>{
-   
-     console.log("removed",req.body.itemId);
-    let userData = await Users.findOne({_id:req.user.id}) ;
-    if(userData.cartData[req.body.itemId]>0)
-    userData.cartData[req.body.itemId] -= 1 ;
-    await Users.findOneAndUpdate({_id:req.user.id},{cartData:userData.cartData});
-    res.send("Removed")
-
-})
-
-//creating endpoint to get cartdata
-app.post('/getcart',fetchUser,async (req,res)=>{
-  console.log("GetCart");
-  let userData = await Users.findOne({_id:req.user.id}) ;
-  res.json(userData.cartData) ;
-})
 
 
-app.listen(port,(error)=>{
-    if(!error){
-        console.log("Server Running on Port :"+port) ;
-    }
-    else{
-      console.log("Error :"+error)  
-    }
-})
+
+// Initialize Firebase Admin SDK
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+// Notification sender function
+function sendNotification(token, title, body) {
+  const message = {
+    notification: {
+      title,
+      body,
+    },
+    token,
+  };
+
+  admin
+    .messaging()
+    .send(message)
+    .then((response) => {
+      console.log("✅ Successfully sent message:", response);
+    })
+    .catch((error) => {
+      console.error("❌ Error sending message:", error);
+    });
+}
+
+// Route to receive token and trigger a test notification
+app.post("/send-notification", async (req, res) => {
+  const { token } = req.body;
+  
+  if (!token || !uid) {
+    return res.status(400).json({ message: "Token and UID are required" });
+  }
+
+  const title = "🔔 Test Notification";
+  const body = "This is a test notification from the backend!";
+
+  try {
+    sendNotification(token, title, body);
+
+    const newNotification = new Notification({
+      uid,
+      token,
+      title,
+      body,
+    });
+
+    await newNotification.save();
+
+    res.status(200).json({ message: "Notification sent and stored" });
+  } catch (err) {
+    console.error("❌ Failed to send/save notification:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Start server
+// const PORT = process.env.PORT || 5000;
+app.listen(port, () => {
+  console.log(`🚀 Server is running on port ${port}`);
+});
