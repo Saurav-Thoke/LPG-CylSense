@@ -16,6 +16,7 @@ import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
 import AuthPage from "./pages/AuthPage";
 import Navbar from "./components/Navbar";
+import Precautions from "./pages/Precautions";
 
 const VAPID_KEY = "BGymQrL8E7nBxDmmPIHLBffACvlxcF6idbc_2LUrCP7O9prm4z1ha2YxFvEr7Ky32LcA7-SGi8iFTCWSrv90I68";
 
@@ -100,6 +101,7 @@ function App() {
           <Route path="/dashboard" element={user ? <UserDashboard /> : <Navigate to="/" />} />
           <Route path="/forecast" element={<Forecast />} />
           <Route path="/notification" element={<Notifications />} />
+          <Route path="/precautions" element={<Precautions />} />
           {/* Optional: 404 Route */}
           {/* <Route path="*" element={<NotFound />} /> */}
         </Routes>
