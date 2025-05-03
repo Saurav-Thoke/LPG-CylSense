@@ -380,7 +380,8 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchLiveData = async () => {
       try {
-        const response = await fetch("http://192.168.0.5:5000/data");
+        const api=process.env.REACT_APP_DOMAIN_URI;
+        const response = await fetch(api);
         const data = await response.json();
         setWeight(data.weight);
         setIsLeaking(data.gas !== "Safe");

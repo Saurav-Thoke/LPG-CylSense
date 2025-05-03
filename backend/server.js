@@ -45,7 +45,7 @@ const sendNotification = (token, title, body) => {
 // Sample LPG data endpoint
 app.get("/data", async (req, res) => {
   try {
-    const response = await axios.get("http://192.168.0.2/data"); // Replace with actual device IP
+    const response = await axios.get(process.env.REACT_APP_DEV_URI); // Replace with actual device IP
     const data = response.data;
 
     // Check if the gas is "Leak", if so send notification
@@ -86,7 +86,7 @@ app.post("/save-token", async (req, res) => {
   const { token, uid } = req.body; // Accept `uid` along with token
 
   if (!token || !uid) return res.status(400).json({ success: false, message: "Token and UID are required" });
-  const response = await axios.get("http://192.168.0.2/data"); // Replace with actual device IP
+  const response = await axios.get(process.env.REACT_APP_DEV_URI); // Replace with actual device IP
     const data = response.data;
 
     // Check if the gas is "Leak", if so send notification
