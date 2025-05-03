@@ -27,6 +27,7 @@ const Notification = require('./models/Notification'); // Make sure this file ex
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 app.use('/api/user', require('./routes/user'));
+app.use('/api/cylinders', require('./routes/cylinder'));
 
 // Notification Sender
 const sendNotification = (token, title, body) => {
