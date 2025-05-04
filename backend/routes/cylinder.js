@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Cylinder = require('../models/Cylinder');
+const { predictEmptyDate } = require('../utils/forecast');
+
 
 // // Route to add a new cylinder
 // router.post('/add', async (req, res) => {
@@ -35,7 +37,19 @@ router.get("/:uid", async (req, res) => {
 
   try {
     const entries = await Cylinder.find({ uid }); // oldest to newest
-    res.json(entries);
+    // res.json({entries});
+    let predictedEmptyDate = null;
+    if (entries.length >= 3) {
+      predictedEmptyDate = predictEmptyDate(entries);
+    }
+
+    console.log("BACKEND_PREDICTION------------------",predictEmptyDate);
+    
+
+    res.json({
+      entries,
+      predictedEmptyDate,
+    });
   } catch (err) {
     console.error("Error fetching data:", err);
     res.status(500).json({ error: "Failed to fetch data" });

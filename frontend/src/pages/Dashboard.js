@@ -400,18 +400,21 @@ export default function Dashboard() {
   // Fetch Chart Data
   useEffect(() => {
     const fetchChartData = async () => {
-      if (!uid) return;
-
+      const user = getAuth().currentUser;
+      if (!user) return;
+  
+      const uid = user.uid;
+  
       try {
-        const user = getAuth().currentUser;
-        if (!user) return;
-
         const response = await axios.get(`http://localhost:5000/api/cylinders/${uid}`);
-        const cylinders = response.data;
-
+        const rawData = response.data;
+        const cylinders = Array.isArray(rawData) ? rawData : rawData.entries || [];
+  
+        console.log("CYLINDER------------", cylinders);
+  
         const labels = cylinders.map(({ trackDate }) => trackDate);
         const weights = cylinders.map(({ cylinderWeight }) => cylinderWeight);
-
+  
         setChartData({
           labels,
           datasets: [
@@ -431,9 +434,10 @@ export default function Dashboard() {
         console.error(err);
       }
     };
-
+  
     fetchChartData();
-  }, [uid]);
+  }, []);
+  
 
   const chartOptions = {
     responsive: true,
@@ -444,10 +448,25 @@ export default function Dashboard() {
       },
     },
     scales: {
-      x: { ticks: { color: "#6B7280" }, grid: { display: false } },
-      y: { ticks: { color: "#6B7280" }, grid: { color: "#E5E7EB" } },
+      x: {
+        ticks: { color: "#6B7280" },
+        grid: { display: false },
+      },
+      y: {
+        min: 0,
+        max: 14.2, // ✅ Force y-axis to start from 0 to full cylinder
+        ticks: {
+          color: "#6B7280",
+          stepSize: 2, // optional: label interval
+          callback: function (value) {
+            return value + " kg";
+          },
+        },
+        grid: { color: "#E5E7EB" },
+      },
     },
   };
+  
 
   const gasLevelPercent = (weight / capacity) * 100;
   let gasLevelColor = "";
@@ -481,13 +500,18 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="w-full lg:flex-1 bg-white p-6 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Usage Trend</h2>
-          {chartData ? (
-            <Line data={chartData} options={chartOptions} />
-          ) : (
-            <p className="text-gray-500">Loading chart data...</p>
-          )}
-        </div>
+  <h2 className="text-xl font-semibold text-gray-800 mb-4">Usage Trend</h2>
+  <div className="overflow-x-auto w-full"> {/* Scrollable container */}
+    {chartData ? (
+      <div className="min-w-[800px]"> {/* Minimum width for the chart */}
+        <Line data={chartData} options={chartOptions} />
+      </div>
+    ) : (
+      <p className="text-gray-500">Loading chart data...</p>
+    )}
+  </div>
+</div>
+
       </div>
     </div>
   );
