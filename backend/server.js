@@ -2,26 +2,32 @@ const mongoose = require('mongoose');
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
-const axios = require('axios'); // Added axios for making HTTP requests
+const axios = require('axios');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+const corsOptions = {
+  origin: "http://localhost:3000",  // Replace with your frontend URL
+  methods: "GET,POST",              // Allow specific methods (GET, POST, etc.)
+  allowedHeaders: "Content-Type",   // Allow certain headers
+};
 // Firebase Admin Setup
 const serviceAccount = require('./firebase-admin.json');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
-// Connect to MongoDB Atlas
+// MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ Connected to MongoDB Atlas"))
   .catch(err => console.error("❌ MongoDB connection error:", err));
 
 // Models
-const Notification = require('./models/Notification'); // Make sure this file exists
+const Notification = require('./models/Notification');
+const SensorData = require('./models/SensorData'); // 💡 You'll create this model
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -29,94 +35,91 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', require('./routes/user'));
 app.use('/api/cylinders', require('./routes/cylinder'));
 
-// Notification Sender
+// 🔔 Send Firebase Notification
 const sendNotification = (token, title, body) => {
-  const message = {
-    notification: { title, body },
-    token,
-  };
-
+  const message = { notification: { title, body }, token };
   admin.messaging()
     .send(message)
     .then((response) => console.log("✅ Notification sent:", response))
     .catch((error) => console.error("❌ Notification error:", error));
 };
 
-// Sample LPG data endpoint
-app.get("/data", async (req, res) => {
-  try {
-    const response = await axios.get(process.env.REACT_APP_DEV_URI); // Replace with actual device IP
-    const data = response.data;
-
-    // Check if the gas is "Leak", if so send notification
-    if (data.gas === "Leak") {
-      const title = "🚨 Gas Leak Detected!";
-      const body = "Potential gas leakage detected. Please ensure ventilation and check immediately.";
-
-      // Send notification to the users who have subscribed to alerts
-      sendNotificationToUsers(title, body);
-    }
-
-    res.json(data);
-  } catch (error) {
-    console.error("❌ Error fetching device data:", error.message);
-    res.status(500).json({ error: "Failed to fetch real-time data" });
-  }
-});
-
-// Function to send notifications to all users
+// 🔁 Function to send to all users
 const sendNotificationToUsers = async (title, body) => {
   try {
-    // Fetch all users (or notification tokens) from MongoDB
     const users = await Notification.find();
-
-    users.forEach((user) => {
-      // Send the notification to each user
-      sendNotification(user.token, title, body);
-    });
-
-    console.log("✅ Notifications sent to users");
+    users.forEach(user => sendNotification(user.token, title, body));
+    console.log("✅ Notifications sent to all users");
   } catch (error) {
-    console.error("❌ Error fetching users for notifications:", error);
+    console.error("❌ Error sending to users:", error);
   }
 };
 
-// Save token & send notification
-app.post("/save-token", async (req, res) => {
-  const { token, uid } = req.body; // Accept `uid` along with token
+// 🔥 Endpoint for ESP to POST data
+app.post('/api/sensor-data', async (req, res) => {
+  const { weight, gas, device } = req.body;
+  console.log("Received Data:", req.body);  // Log the incoming data
 
-  if (!token || !uid) return res.status(400).json({ success: false, message: "Token and UID are required" });
-  const response = await axios.get(process.env.REACT_APP_DEV_URI); // Replace with actual device IP
-    const data = response.data;
+  if (!weight || !gas || !device) {
+    return res.status(400).json({ success: false, message: "Missing data fields" });
+  }
 
-    // Check if the gas is "Leak", if so send notification
-    if (data.gas === "Leak") {
-      const title = "🚨 Gas Leak Detected!";
-      const body = "Potential gas leakage detected. Please ensure ventilation and check immediately.";
-
-      // Send notification to the users who have subscribed to alerts
-     
   try {
-    // Save to MongoDB with UID
-    const notification = new Notification({ token, uid, title, body });
-    await notification.save();
+    const newData = new SensorData({ weight, gas, device });
+    await newData.save();
+    res.status(200).json({ success: true, message: "Sensor data received and stored" });
+  } catch (error) {
+    console.error("❌ Error saving sensor data:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
 
-    // Send Firebase Notification
-    sendNotification(token, title, body);
+
+// 📥 GET sensor data (for frontend)
+
+
+
+// 🔑 Save token and send notification on gas leak
+app.post("/save-token", async (req, res) => {
+  const { token, uid } = req.body;
+
+  if (!token || !uid)
+    return res.status(400).json({ success: false, message: "Token and UID are required" });
+
+  try {
+    const notification = new Notification({
+      token,
+      uid,
+      title: "🚨 Gas Leak Detected!",
+      body: "Potential gas leakage detected. Please ensure ventilation and check immediately.",
+    });
+
+    await notification.save();
+    sendNotification(token, notification.title, notification.body);
 
     res.status(200).json({ success: true, message: "Notification sent & saved" });
   } catch (error) {
     console.error("❌ Error saving notification:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
-  }}
+  }
 });
 
-// Get all notifications for a user by UID
+app.get('/api/sensor-data', async (req, res) => {
+  try {
+    const data = await SensorData.find().sort({ timestamp: -1 }).limit(10);
+    res.status(200).json(data);
+  } catch (error) {
+    console.error("❌ Error fetching sensor data:", error.message);
+    res.status(500).json({ message: "Failed to fetch sensor data" });
+  }
+});
+
+
+// 🔔 Notification history routes
 app.get("/api/notifications/:uid", async (req, res) => {
-  const { uid } = req.params; // Get UID from request params
+  const { uid } = req.params;
 
   try {
-    // Fetch notifications for specific UID
     const notifications = await Notification.find({ uid }).sort({ date: -1 });
     res.status(200).json(notifications);
   } catch (error) {
@@ -125,14 +128,11 @@ app.get("/api/notifications/:uid", async (req, res) => {
   }
 });
 
-// DELETE: Clear all notifications for a user
 app.delete("/api/notifications/:uid/clear", async (req, res) => {
-  const { uid } = req.params; // Get UID from request params
+  const { uid } = req.params;
 
   try {
-    // Delete all notifications for this user
     await Notification.deleteMany({ uid });
-
     res.status(200).json({ message: "All notifications cleared" });
   } catch (error) {
     console.error("❌ Error clearing notifications:", error);
@@ -140,6 +140,6 @@ app.delete("/api/notifications/:uid/clear", async (req, res) => {
   }
 });
 
-// Start the server
+// Start server
 const PORT = 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
