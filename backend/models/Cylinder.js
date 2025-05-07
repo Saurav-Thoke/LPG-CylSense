@@ -1,17 +1,17 @@
 const mongoose = require('mongoose');
 
 const CylinderSchema = new mongoose.Schema({
-  userId: {
-    type: String,  // Firebase user ID
+  uid: {
+    type: String,  
     required: true
   },
   cylinderWeight: {
     type: Number,
     required: true
   },
-  status: {
-    type: String,  // "full", "empty"
-    required: true
+  trackDate: {
+    type: String,
+    default: Date.now
   }
 });
 

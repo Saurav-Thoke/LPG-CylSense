@@ -23,7 +23,7 @@ app.use(express.json()) ;
 app.use(cors()) ;
 
 //Database connetion with mongodb
-mongoose.connect("mongodb+srv://sauravthoke28:saurav@cluster0.07nhyvw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")  ;
+mongoose.connect(process.env.MONGO_URI)  ;
 
 //API Creation
 app.get("/",(req,res)=>{

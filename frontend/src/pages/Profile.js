@@ -1,3 +1,6 @@
+
+
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
@@ -15,27 +18,13 @@ function Profile() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState(false);
-
-  // const fetchUserData = async () => {
-  //   try {
-  //     const token = await getIdToken(user);
-  //     const res = await axios.get("http://localhost:5000/api/user", {
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     });
-  //     const { name, phone, address } = res.data;
-  //     setName(name);
-  //     setPhone(phone);
-  //     setAddress(address);
-  //   } catch (error) {
-  //     toast.error("Failed to fetch user data.");
-  //   }
-  // };
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         const token = await getIdToken(user);
-        const res = await axios.get("http://localhost:5000/api/user", {
+        const res = await axios.get(`${process.env.REACT_APP_DOMAIN_URI}/api/user`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const { name, phone, address } = res.data;
@@ -44,17 +33,18 @@ function Profile() {
         setAddress(address);
       } catch (error) {
         toast.error("Failed to fetch user data.");
+      } finally {
+        setLoading(false);
       }
     };
-  
+
     if (user) fetchUserData();
   }, [user]);
-  
 
   const updateUserData = async (data) => {
     try {
       const token = await getIdToken(user);
-      await axios.put("http://localhost:5000/api/user", data, {
+      await axios.put(`${process.env.REACT_APP_DOMAIN_URI}/api/user`, data, {
         headers: { Authorization: `Bearer ${token}` },
       });
     } catch (err) {
@@ -65,7 +55,7 @@ function Profile() {
   const handleLogout = async () => {
     const confirmed = window.confirm("Are you sure you want to logout?");
     if (!confirmed) return;
-  
+
     try {
       await signOut(auth);
       toast.success("Logged out successfully!");
@@ -74,7 +64,7 @@ function Profile() {
       toast.error("Error during logout");
     }
   };
-  
+
   const handlePasswordReset = async () => {
     if (user?.email) {
       await sendPasswordResetEmail(auth, user.email);
@@ -123,10 +113,17 @@ function Profile() {
     </svg>
   );
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-opacity-75"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto py-10 px-6">
       <div className="bg-white shadow-xl rounded-xl p-6 space-y-6">
-        {/* Profile Header */}
         <div className="space-y-4">
           {/* Name */}
           <div className="flex items-center space-x-2">
@@ -195,7 +192,7 @@ function Profile() {
             )}
           </div>
 
-          {/* Address Section */}
+          {/* Address */}
           <div className="flex items-start justify-between">
             <div className="w-full">
               <div className="flex items-center space-x-2 mb-1">

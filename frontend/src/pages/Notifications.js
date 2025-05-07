@@ -8,7 +8,6 @@ const Notification = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Get color for each notification type
   const getColor = (type) => {
     switch (type) {
       case "success":
@@ -24,16 +23,15 @@ const Notification = () => {
     }
   };
 
-  // Fetch notifications from the server
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
         const user = getAuth().currentUser;
         if (!user) return;
-  
+
         const uid = user.uid;
         const res = await axios.get(`http://localhost:5000/api/notifications/${uid}`);
-  
+
         const formatted = res.data
           .map((note, index) => ({
             id: index,
@@ -41,8 +39,8 @@ const Notification = () => {
             type: "info",
             timestamp: note.timestamp,
           }))
-          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Sort newest first
-  
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
         setNotifications(formatted);
       } catch (err) {
         console.error("Error fetching notifications:", err);
@@ -50,25 +48,31 @@ const Notification = () => {
         setLoading(false);
       }
     };
-  
+
     fetchNotifications();
   }, []);
 
-  // Function to handle clearing all notifications
   const handleClearAll = async () => {
     try {
       const user = getAuth().currentUser;
       if (!user) return;
 
       const uid = user.uid;
-      await axios.delete(`http://localhost:5000/api/notifications/${uid}/clear`);
-
-      // Clear the notifications from state
+      await axios.delete(`${process.env.REACT_APP_DOMAIN_URI}/api/notifications/${uid}/clear`);
       setNotifications([]);
     } catch (error) {
       console.error("Failed to clear notifications", error);
     }
   };
+
+  // 🔄 Show Fullscreen Spinner While Loading
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-opacity-75"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto py-10 px-6">
@@ -85,9 +89,7 @@ const Notification = () => {
         )}
       </div>
 
-      {loading ? (
-        <p className="text-gray-500 text-center">Loading...</p>
-      ) : notifications.length === 0 ? (
+      {notifications.length === 0 ? (
         <div className="text-center py-10">
           <p className="text-gray-500 text-lg">No notifications yet 🚫</p>
         </div>
