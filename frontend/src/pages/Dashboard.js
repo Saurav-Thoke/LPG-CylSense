@@ -16,6 +16,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import { getAuth } from "firebase/auth";
 
 ChartJS.register(
   LineElement,
@@ -38,7 +39,7 @@ export default function Dashboard() {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
-        console.log("🔐 Logged in UID:", user.uid); // ✅ Log UID
+        console.log("🔐 Logged in UID:", user.uid);
         setUid(user.uid);
       } else {
         toast.error("User not logged in");
@@ -53,9 +54,10 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchLiveData = async () => {
       try {
-        const res = await axios.get("http://192.168.0.3/data", { timeout: 10000 }); // 10 seconds timeout
+        // const res = await axios.get(process.env.REACT_APP_API, { timeout: 10000 });
+        const res = await axios.get(process.env.REACT_APP_BACKEND, { timeout: 20000 });
         const data = res.data;
-    
+
         console.log("📡 Live Sensor Data:", data);
         if (data && typeof data.weight !== "undefined") {
           setWeight(data.weight);
@@ -69,36 +71,30 @@ export default function Dashboard() {
       } finally {
         setLoading(false);
       }
-   
-    
     };
 
-    fetchLiveData(); // Initial call
-    const interval = setInterval(fetchLiveData, 6000); // Poll every 6 seconds
+    fetchLiveData();
+    const interval = setInterval(fetchLiveData, 6000);
 
-    return () => clearInterval(interval); // Cleanup
+    return () => clearInterval(interval);
   }, []);
 
   // 📈 Fetch Cylinder Weight History for Chart
   useEffect(() => {
     const fetchChartData = async () => {
-      if (!uid) return;
+      const user = getAuth().currentUser;
+      if (!user) return;
+
+      const uid = user.uid;
 
       try {
-        const response = await fetch(`http://localhost:5000/api/cylinders/${uid}`);
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        const cylinders = await response.json();
+        const response = await axios.get(`${process.env.REACT_APP_DOMAIN_URI}/api/cylinders/${uid}`);
+        const rawData = response.data;
+        const cylinders = Array.isArray(rawData) ? rawData : rawData.entries || [];
 
-        console.log("📊 Cylinder History Data:", cylinders); // ✅ Log chart data
+        console.log("CYLINDER------------", cylinders);
 
-        const labels = cylinders.map(({ trackDate }) =>
-          new Date(trackDate).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          })
-        );
+        const labels = cylinders.map(({ trackDate }) => trackDate);
         const weights = cylinders.map(({ cylinderWeight }) => cylinderWeight);
 
         setChartData({
@@ -117,12 +113,12 @@ export default function Dashboard() {
         });
       } catch (err) {
         toast.error("Error fetching chart data.");
-        console.error("📉 Chart fetch error:", err); // ❌ Log chart fetch error
+        console.error("📉 Chart fetch error:", err);
       }
     };
 
     fetchChartData();
-  }, [uid]);
+  }, []);
 
   const chartOptions = {
     responsive: true,
@@ -133,13 +129,59 @@ export default function Dashboard() {
       },
     },
     scales: {
-      x: { ticks: { color: "#6B7280" }, grid: { display: false } },
-      y: { ticks: { color: "#6B7280" }, grid: { color: "#E5E7EB" } },
+      x: {
+        ticks: { color: "#6B7280" },
+        grid: { display: false },
+      },
+      y: {
+        min: 0,
+        max: 14.2,
+        ticks: {
+          color: "#6B7280",
+          stepSize: 2,
+          callback: function (value) {
+            return value + " kg";
+          },
+        },
+        grid: { color: "#E5E7EB" },
+      },
     },
   };
+  
 
   const gasLevelPercent = (weight / capacity) * 100;
   let gasLevelColor = gasLevelPercent >= 60 ? "green" : gasLevelPercent >= 20 ? "orange" : "red";
+
+  // 🌀 Show loading spinner
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-100">
+        <div className="flex flex-col items-center">
+          <svg
+            className="animate-spin h-12 w-12 text-blue-600 mb-4"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v8z"
+            ></path>
+          </svg>
+          <p className="text-gray-600 text-lg font-medium">Fetching sensor data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 p-4">
@@ -157,13 +199,18 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
         <div className="w-full lg:flex-1 bg-white p-6 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Usage Trend</h2>
-          {chartData ? (
-            <Line data={chartData} options={chartOptions} />
-          ) : (
-            <p className="text-gray-500">Loading chart data...</p>
-          )}
+          <div className="overflow-x-auto w-full">
+            {chartData ? (
+              <div className="min-w-[800px]">
+                <Line data={chartData} options={chartOptions} />
+              </div>
+            ) : (
+              <p className="text-gray-500">Loading chart data...</p>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -17,7 +17,7 @@ const Login = () => {
       const user = userCredential.user;
       const idToken = await user.getIdToken();
 
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(`${process.env.REACT_APP_DOMAIN_URI}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

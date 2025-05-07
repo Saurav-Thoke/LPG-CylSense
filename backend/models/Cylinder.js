@@ -9,7 +9,7 @@ const CylinderSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  trackingDate: {
+  trackDate: {
     type: String,
     default: Date.now
   }
